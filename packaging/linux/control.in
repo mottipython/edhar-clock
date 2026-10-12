@@ -1,0 +1,20 @@
+Package: edhar-clock
+Version: @VERSION@
+Section: games
+Priority: optional
+Architecture: @ARCH@
+Depends: libc6 (>= 2.38), libsdl2-2.0-0 (>= 2.0.18), swayidle
+Installed-Size: @SIZE@
+Maintainer: Motti Schleider <motti.schleider@gmail.com>
+Description: The clock of Saunt Edhar, a screensaver from "Anathem"
+ The great clock in the Mynster of the Concent of Saunt Edhar, from Neal
+ Stephenson's novel Anathem: a meteorite on a chain that sinks through the day,
+ and four weights of black stone that tell the year, decade, century and
+ millennium.
+ .
+ This screensaver sets the clock from the real time and date. At noon four fraas
+ wind it, which is the aut of Provener, and every so often a whole day is run
+ through quickly.
+ .
+ On Wayland desktops it starts by itself after five minutes idle.
+ edhar-clock-screensaver changes the delay or turns it off.

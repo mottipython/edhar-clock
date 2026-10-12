@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=The Clock of Saunt Edhar screensaver
+Comment=Start the clock of Saunt Edhar when the session has been idle
+Exec=edhar-clock-screensaver watch
+Icon=edhar-clock
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
