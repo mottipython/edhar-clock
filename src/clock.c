@@ -54,14 +54,16 @@
 ART(chancel, "chancel.jpg") ART(chain, "chain.png") ART(meteorite, "meteorite.png") ART(cube, "cube.png")
 ART(octa, "octahedron.png") ART(dodeca, "dodecahedron.png") ART(icosa, "icosahedron.png") ART(sphere, "sphere.png")
 ART(dial, "dial.png") ART(hub, "hub.png") ART(push1, "push1.png") ART(push2, "push2.png") ART(banner, "banner.png")
+ART(push_away, "push_away.png") ART(push_toward, "push_toward.png")
 
 enum { SP_CHANCEL, SP_CHAIN, SP_METEORITE, SP_CUBE, SP_OCTA, SP_DODECA, SP_ICOSA, SP_SPHERE,
-       SP_DIAL, SP_HUB, SP_PUSH1, SP_PUSH2, SP_BANNER, NSPRITE };
+       SP_DIAL, SP_HUB, SP_PUSH1, SP_PUSH2, SP_BANNER, SP_PUSH_AWAY, SP_PUSH_TOWARD, NSPRITE };
 static struct { const unsigned char *file, *end; int w, h; unsigned char *px; } sprite[NSPRITE] = {
     {art_chancel, art_chancel_end}, {art_chain, art_chain_end}, {art_meteorite, art_meteorite_end},
     {art_cube, art_cube_end}, {art_octa, art_octa_end}, {art_dodeca, art_dodeca_end}, {art_icosa, art_icosa_end},
     {art_sphere, art_sphere_end}, {art_dial, art_dial_end}, {art_hub, art_hub_end}, {art_push1, art_push1_end},
     {art_push2, art_push2_end}, {art_banner, art_banner_end},
+    {art_push_away, art_push_away_end}, {art_push_toward, art_push_toward_end},
 };
 static SDL_Texture **cur_tex; /* the pictures, for the renderer being drawn to */
 
@@ -98,7 +100,7 @@ static int opt_w = 1920, opt_h = 1200;
 /* ---- colours ---- */
 typedef struct { Uint8 r, g, b; } Rgb;
 static const Rgb BG = {20, 16, 14}, INK = {46, 32, 22}, RED = {186, 52, 34}, CHORD = {130, 44, 30};
-static const Rgb IRON = {84, 76, 70}, WOOD = {168, 112, 62}, GOLD = {222, 172, 70}, PAPER = {253, 246, 226};
+static const Rgb IRON = {84, 76, 70}, WOOD = {190, 122, 62}, WOOD_END = {226, 170, 104}, GOLD = {222, 172, 70}, PAPER = {253, 246, 226};
 static const Rgb NIGHT = {14, 22, 52};
 
 /* ---- geometry buffer ---- */
@@ -356,22 +358,41 @@ static void hand(double cx, double cy, double turn, double len, double wide, Rgb
     line(cx - sx * len * 0.16, cy - cy2 * len * 0.16, cx + sx * len, cy + cy2 * len, wide, col(c, 1));
 }
 
-/* one of the four at the capstan; ang is where he is on his round, seen from the side */
-static void draw_pusher(double cx, double floor_y, double reach, double ang, double tall, int pass)
+/* The capstan is seen from the side, so the circle the fraas walk is drawn as a flat
+ * ellipse: (cx, cy) its middle on the floor, rx and ry its half-width and half-depth.
+ * ang is where the end of a pole is on that circle; pole_y is the height of the poles
+ * at the hub. Things on the far side are drawn before the hub (pass 0), things on the
+ * near side after it (pass 1). */
+static void draw_pole(double cx, double pole_y, double rx, double ry, double ang, double hub_half, int pass)
 {
-    double depth = sin(ang);                      /* +1 nearest us */
-    if ((depth >= 0) != pass) return;
-    double x = cx + cos(ang) * reach, y = floor_y + depth * unit * 1.6, k = 1 + 0.07 * depth;
-    int facing_right = depth >= 0;                /* widdershins seen from above */
-    int frame = fmod(anim_t * 3.2 + ang, 2) < 1 ? SP_PUSH1 : SP_PUSH2;
-    double w = tall * k * sprite[frame].w / sprite[frame].h;
-    /* his pole, from the hub to his hands */
-    double hy = y - tall * k * 0.62;
-    line(cx, hy, x + (facing_right ? 1 : -1) * w * 0.1, hy, unit * 1.05, col(INK, 1));
-    line(cx, hy, x + (facing_right ? 1 : -1) * w * 0.1, hy, unit * 0.65, col(WOOD, 1));
-    disc(x - (facing_right ? 1 : -1) * w * 0.2, y, w * 0.4, col(INK, 0.25), col(INK, 0));
-    /* he stands behind the end of the pole and leans into it */
-    pic_part(frame, x - (facing_right ? 1 : -1) * w * 0.52 - w / 2, y - tall * k, w, tall * k, 0, 1, 0, !facing_right);
+    if ((sin(ang) >= 0) != pass) return;
+    double ex = cx + cos(ang) * rx, ey = pole_y + sin(ang) * ry, k = 1 + 0.12 * sin(ang);
+    double bx = cx + cos(ang) * hub_half * 0.8, by = pole_y + sin(ang) * ry * hub_half / rx; /* where it leaves the hub */
+    line(bx, by, ex, ey, unit * 1.15 * k, col(INK, 1));
+    line(bx, by, ex, ey, unit * 0.7 * k, col(WOOD, 1));
+    disc(ex, ey, unit * 0.35 * k, col(WOOD_END, 1), col(WOOD_END, 1));
+}
+/* one of the four who wind the clock. He walks widdershins (seen from above) just
+ * behind the end of his pole, with his hands on it. */
+static void draw_pusher(double cx, double cy, double pole_y, double rx, double ry, double ang, double tall, int pass)
+{
+    double at = ang + 0.3;                         /* a little behind the pole's end */
+    if ((sin(at) >= 0) != pass) return;
+    double k = 1 + 0.12 * sin(at);                 /* nearer is bigger */
+    double ex = cx + cos(ang) * rx, ey = pole_y + sin(ang) * ry;
+    double fy = cy + sin(at) * ry;                 /* where his feet are */
+    /* which way he is going decides which picture of him is used */
+    int which, flip = 0;
+    double hands = 0.5;                            /* where his hands are across the picture */
+    if (sin(at) > 0.6) { which = fmod(anim_t * 3.2 + ang, 2) < 1 ? SP_PUSH1 : SP_PUSH2; hands = 0.95; }
+    else if (sin(at) < -0.6) { which = fmod(anim_t * 3.2 + ang, 2) < 1 ? SP_PUSH1 : SP_PUSH2; hands = 0.05; flip = 1; }
+    else if (cos(at) < 0) which = SP_PUSH_TOWARD;  /* coming round the left towards us */
+    else which = SP_PUSH_AWAY;                     /* going round the right away from us */
+    double th = tall * k, w = th * sprite[which].w / sprite[which].h;
+    double bob = fabs(sin(anim_t * 5 + ang)) * unit * 0.25;
+    disc(ex + (0.5 - hands) * w, fy, w * 0.36, col(INK, 0.28), col(INK, 0));
+    pic_part(which, ex - hands * w, fy - th - bob, w, th, 0, 1, 0, flip);
+    (void)ey;
 }
 
 static void draw_scene(SDL_Renderer *r, int w, int h)
@@ -420,30 +441,29 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     pic(SP_SPHERE, sx, sy, s_tall, 0.5, 0.56);
 
     /* the meteorite on the main chain, down the middle */
-    double cx = w * 0.5, floor_y = h * 0.905, hub_tall = h * 0.19;
-    double m_top = h * 0.13, m_bot = floor_y - hub_tall - h * 0.115, mt = h * 0.15;
+    double cx = w * 0.5, floor_y = h * 0.93, hub_tall = h * 0.235;
+    double m_top = h * 0.13, m_bot = floor_y - hub_tall - h * 0.15, mt = h * 0.15;
     double my = m_top + meteorite_drop() * (m_bot - m_top);
     draw_chain(cx, 0, my - mt * 0.4, unit * 2.0);
     pic(SP_METEORITE, cx, my + sin(anim_t * 0.7) * unit * 0.08, mt, 0.5, 0.5);
 
     /* the hub, and at Provener the four who wind it */
     int wind = winding();
-    double ang = wind ? anim_t * 0.8 : 0.5, reach = w * 0.115, tall = h * 0.21;
-    if (wind) for (int i = 0; i < 4; i++) draw_pusher(cx, floor_y, reach, ang + i * M_PI / 2, tall, 0);
-    else
-        for (int i = 0; i < 4; i++) { /* the poles at rest */
-            double a = 0.5 + i * M_PI / 2, hy = floor_y - tall * 0.62 + sin(a) * unit * 0.8;
-            if (sin(a) < 0) { line(cx, hy, cx + cos(a) * reach, hy, unit * 1.05, col(INK, 1)); line(cx, hy, cx + cos(a) * reach, hy, unit * 0.65, col(WOOD, 1)); }
+    double rx = w * 0.13, ry = h * 0.05, ccy = floor_y - ry, pole_y = ccy - hub_tall * 0.5;
+    double ang = wind ? -anim_t * 0.75 : M_PI / 4, tall = hub_tall * 0.5 / 0.64;
+    double hub_w = hub_tall * sprite[SP_HUB].w / sprite[SP_HUB].h;
+    for (int pass = 0; pass < 2; pass++) {
+        if (pass) {
+            disc(cx, ccy, hub_tall * 0.62, col(INK, 0.3), col(INK, 0));
+            pic_part(SP_HUB, cx - hub_w / 2, ccy + hub_tall * 0.06 - hub_tall, hub_w, hub_tall, 0, 1, 0, 0);
         }
-    disc(cx, floor_y - unit * 0.5, hub_tall * 0.7, col(INK, 0.3), col(INK, 0));
-    double hw = hub_tall * sprite[SP_HUB].w / sprite[SP_HUB].h * 0.62;
-    pic_part(SP_HUB, cx - hw / 2, floor_y - hub_tall, hw, hub_tall, 0.19, 0.81, 0, 0);
-    if (wind) for (int i = 0; i < 4; i++) draw_pusher(cx, floor_y, reach, ang + i * M_PI / 2, tall, 1);
-    else
         for (int i = 0; i < 4; i++) {
-            double a = 0.5 + i * M_PI / 2, hy = floor_y - tall * 0.62 + sin(a) * unit * 0.8;
-            if (sin(a) >= 0) { line(cx, hy, cx + cos(a) * reach, hy, unit * 1.05, col(INK, 1)); line(cx, hy, cx + cos(a) * reach, hy, unit * 0.65, col(WOOD, 1)); }
+            double a = ang + i * M_PI / 2 + (pass ? 1e-6 : -1e-6);
+            if (wind && !pass) draw_pusher(cx, ccy, pole_y, rx, ry, a, tall, 0);
+            draw_pole(cx, pole_y, rx, ry, a, hub_w / 2, pass);
+            if (wind && pass) draw_pusher(cx, ccy, pole_y, rx, ry, a, tall, 1);
         }
+    }
     flush(r);
 
     /* night comes on: darkest at midnight, clear from sunrise to sunset */

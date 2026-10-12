@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Turn the drawings in assets/src into the pictures the screensaver builds in,
-under assets/art.
+under assets/art. (assets/art/hub.png was touched up by hand to take out the two
+poles drawn into it, so it is not regenerated here.)
 
     tools/make_sprites.py
 
@@ -15,7 +16,7 @@ import numpy as np
 SRC, OUT = "assets/src", "assets/art"
 OBJECTS = {  # name: height in pixels, or ("w", width)
     "meteorite": 380, "cube": 320, "octahedron": 340, "dodecahedron": 330, "icosahedron": 340, "sphere": 300,
-    "dial": 760, "hub": ("w", 760), "push1": 440, "push2": 440, "banner": ("w", 900),
+    "dial": 760, "push1": 440, "push2": 440, "banner": ("w", 900),
 }
 
 def load(path):
