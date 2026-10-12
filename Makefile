@@ -1,5 +1,5 @@
 # The Clock - a screensaver of the clock at Saunt Edhar from Neal Stephenson's "Anathem"
-VERSION  := 1.0.1
+VERSION  := 1.0.2
 PREFIX   ?= /usr
 SYSCONFDIR ?= /etc
 DESTDIR  ?=

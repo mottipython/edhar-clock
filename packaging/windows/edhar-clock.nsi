@@ -6,7 +6,7 @@
 !include "x64.nsh"
 
 !ifndef VERSION
-  !define VERSION "1.0.1"
+  !define VERSION "1.0.2"
 !endif
 
 Name "The Clock of Saunt Edhar ${VERSION}"

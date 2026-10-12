@@ -15,8 +15,7 @@ import numpy as np
 SRC, OUT = "assets/src", "assets/art"
 OBJECTS = {  # name: height in pixels, or ("w", width)
     "meteorite": 380, "cube": 320, "octahedron": 340, "dodecahedron": 330, "icosahedron": 340, "sphere": 300,
-    "dial": 760, "hub": ("w", 620), "push1": 440, "push2": 440, "push_toward": 420, "push_away": 440,
-    "banner": ("w", 900),
+    "dial": 760, "hub": ("w", 620), "top1": 420, "tophub": 520, "banner": ("w", 900),
 }
 
 def load(path):
@@ -62,6 +61,7 @@ def main():
     save(a, w, h, f"{OUT}/chain.png")
     print("chain", w, h)
     subprocess.run(["magick", f"{SRC}/chancel.jpeg", "-resize", "1920x1072!", "-quality", "90", f"{OUT}/chancel.jpg"], check=True)
+    subprocess.run(["magick", f"{SRC}/floor.jpeg", "-resize", "768x768!", "-quality", "90", f"{OUT}/floor.jpg"], check=True)
     print("chancel 1920x1072")
 
 if __name__ == "__main__":

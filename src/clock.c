@@ -53,17 +53,16 @@
     extern const unsigned char art_##name[], art_##name##_end[];
 ART(chancel, "chancel.jpg") ART(chain, "chain.png") ART(meteorite, "meteorite.png") ART(cube, "cube.png")
 ART(octa, "octahedron.png") ART(dodeca, "dodecahedron.png") ART(icosa, "icosahedron.png") ART(sphere, "sphere.png")
-ART(dial, "dial.png") ART(hub, "hub.png") ART(push1, "push1.png") ART(push2, "push2.png") ART(banner, "banner.png")
-ART(push_away, "push_away.png") ART(push_toward, "push_toward.png")
+ART(dial, "dial.png") ART(hub, "hub.png") ART(banner, "banner.png")
+ART(top1, "top1.png") ART(tophub, "tophub.png") ART(floor, "floor.jpg")
 
 enum { SP_CHANCEL, SP_CHAIN, SP_METEORITE, SP_CUBE, SP_OCTA, SP_DODECA, SP_ICOSA, SP_SPHERE,
-       SP_DIAL, SP_HUB, SP_PUSH1, SP_PUSH2, SP_BANNER, SP_PUSH_AWAY, SP_PUSH_TOWARD, NSPRITE };
+       SP_DIAL, SP_HUB, SP_BANNER, SP_TOP1, SP_TOPHUB, SP_FLOOR, NSPRITE };
 static struct { const unsigned char *file, *end; int w, h; unsigned char *px; } sprite[NSPRITE] = {
     {art_chancel, art_chancel_end}, {art_chain, art_chain_end}, {art_meteorite, art_meteorite_end},
     {art_cube, art_cube_end}, {art_octa, art_octa_end}, {art_dodeca, art_dodeca_end}, {art_icosa, art_icosa_end},
-    {art_sphere, art_sphere_end}, {art_dial, art_dial_end}, {art_hub, art_hub_end}, {art_push1, art_push1_end},
-    {art_push2, art_push2_end}, {art_banner, art_banner_end},
-    {art_push_away, art_push_away_end}, {art_push_toward, art_push_toward_end},
+    {art_sphere, art_sphere_end}, {art_dial, art_dial_end}, {art_hub, art_hub_end}, {art_banner, art_banner_end},
+    {art_top1, art_top1_end}, {art_tophub, art_tophub_end}, {art_floor, art_floor_end},
 };
 static SDL_Texture **cur_tex; /* the pictures, for the renderer being drawn to */
 
@@ -372,27 +371,60 @@ static void draw_pole(double cx, double pole_y, double rx, double ry, double ang
     line(bx, by, ex, ey, unit * 0.7 * k, col(WOOD, 1));
     disc(ex, ey, unit * 0.35 * k, col(WOOD_END, 1), col(WOOD_END, 1));
 }
-/* one of the four who wind the clock. He walks widdershins (seen from above) just
- * behind the end of his pole, with his hands on it. */
-static void draw_pusher(double cx, double cy, double pole_y, double rx, double ry, double ang, double tall, int pass)
+/* a picture turned about its own middle; deg is clockwise, 0 leaves it upright */
+static void pic_turned(int which, double x, double y, double tall, double deg)
 {
-    double at = ang + 0.3;                         /* a little behind the pole's end */
-    if ((sin(at) >= 0) != pass) return;
-    double k = 1 + 0.12 * sin(at);                 /* nearer is bigger */
-    double ex = cx + cos(ang) * rx, ey = pole_y + sin(ang) * ry;
-    double fy = cy + sin(at) * ry;                 /* where his feet are */
-    /* which way he is going decides which picture of him is used */
-    int which, flip = 0;
-    double hands = 0.5;                            /* where his hands are across the picture */
-    if (sin(at) > 0.6) { which = fmod(anim_t * 3.2 + ang, 2) < 1 ? SP_PUSH1 : SP_PUSH2; hands = 0.95; }
-    else if (sin(at) < -0.6) { which = fmod(anim_t * 3.2 + ang, 2) < 1 ? SP_PUSH1 : SP_PUSH2; hands = 0.05; flip = 1; }
-    else if (cos(at) < 0) which = SP_PUSH_TOWARD;  /* coming round the left towards us */
-    else which = SP_PUSH_AWAY;                     /* going round the right away from us */
-    double th = tall * k, w = th * sprite[which].w / sprite[which].h;
-    double bob = fabs(sin(anim_t * 5 + ang)) * unit * 0.25;
-    disc(ex + (0.5 - hands) * w, fy, w * 0.36, col(INK, 0.28), col(INK, 0));
-    pic_part(which, ex - hands * w, fy - th - bob, w, th, 0, 1, 0, flip);
-    (void)ey;
+    flush(ren);
+    if (!cur_tex || !cur_tex[which]) return;
+    double w = tall * sprite[which].w / sprite[which].h;
+    SDL_FRect dst = {(float)(x - w / 2), (float)(y - tall / 2), (float)w, (float)tall};
+    SDL_RenderCopyExF(ren, cur_tex[which], NULL, &dst, deg, NULL, SDL_FLIP_NONE);
+}
+
+/* Provener seen from straight above, in a round window: the hub, its four poles, and
+ * the four fraas walking widdershins with their hands on them. A capstan only makes
+ * sense from above, so this is where the people are shown. turn is how far round
+ * they have gone; grow runs 0..1 as the window opens. */
+static void draw_from_above(double cx, double cy, double R, double turn, double grow)
+{
+    if (grow <= 0) return;
+    R *= grow < 1 ? 0.6 + 0.4 * grow : 1;
+    SDL_Color white = {255, 255, 255, (Uint8)(255 * (grow < 1 ? grow : 1))};
+    disc(cx + unit * 0.5, cy + unit * 0.8, R * 1.1, col(INK, 0.4), col(INK, 0.1));
+    disc(cx, cy, R + unit * 1.3, col(INK, 1), col(INK, 1));
+    disc(cx, cy, R + unit * 0.85, col(GOLD, 1), col(GOLD, 1));
+    disc(cx, cy, R + unit * 0.3, col(INK, 1), col(INK, 1));
+    /* the floor, cut round */
+    flush(ren);
+    int n = 64;
+    vb_need(n + 1, 3 * n);
+    vert(cx, cy, white);
+    vb[0].tex_coord.x = vb[0].tex_coord.y = 0.5f;
+    for (int i = 0; i < n; i++) {
+        double a = i * 2 * M_PI / n;
+        vert(cx + R * cos(a), cy + R * sin(a), white);
+        vb[nv - 1].tex_coord.x = (float)(0.5 + 0.5 * cos(a)); vb[nv - 1].tex_coord.y = (float)(0.5 + 0.5 * sin(a));
+    }
+    for (int i = 0; i < n; i++) { ib[ni++] = 0; ib[ni++] = 1 + i; ib[ni++] = 1 + (i + 1) % n; }
+    if (cur_tex && cur_tex[SP_FLOOR]) SDL_RenderGeometry(ren, cur_tex[SP_FLOOR], vb, nv, ib, ni);
+    nv = ni = 0;
+    if (grow < 1) return;
+    double reach = R * 0.9, tall = R * 0.56;
+    for (int i = 0; i < 4; i++) { /* the poles */
+        double a = turn + i * M_PI / 2, ex = cx + cos(a) * reach, ey = cy - sin(a) * reach;
+        line(cx + cos(a) * unit * 0.3 + unit * 0.3, cy - sin(a) * unit * 0.3 + unit * 0.4, ex + unit * 0.3, ey + unit * 0.4, R * 0.05, col(INK, 0.3));
+        line(cx, cy, ex, ey, R * 0.062, col(INK, 1));
+        line(cx, cy, ex, ey, R * 0.04, col(WOOD, 1));
+    }
+    pic_turned(SP_TOPHUB, cx, cy, R * 0.46, -turn * 180 / M_PI);
+    for (int i = 0; i < 4; i++) { /* each fraa just behind his pole, near its end, facing the way he walks */
+        double a = turn + i * M_PI / 2, px = cx + cos(a) * reach * 0.8, py = cy - sin(a) * reach * 0.8;
+        double tx = -sin(a), ty = -cos(a); /* the way he is going, on screen */
+        /* he sways a little from foot to foot as he pushes */
+        double sway = sin(anim_t * 5.5 + i * 1.3) * 4, back = tall * (0.44 + 0.012 * sin(anim_t * 11 + i));
+        disc(px - tx * back + unit * 0.3, py - ty * back + unit * 0.4, tall * 0.36, col(INK, 0.3), col(INK, 0));
+        pic_turned(SP_TOP1, px - tx * back, py - ty * back, tall, -a * 180 / M_PI + sway);
+    }
 }
 
 static void draw_scene(SDL_Renderer *r, int w, int h)
@@ -447,22 +479,27 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     draw_chain(cx, 0, my - mt * 0.4, unit * 2.0);
     pic(SP_METEORITE, cx, my + sin(anim_t * 0.7) * unit * 0.08, mt, 0.5, 0.5);
 
-    /* the hub, and at Provener the four who wind it */
+    /* the hub and its four poles, which go round while the clock is wound */
     int wind = winding();
     double rx = w * 0.158, ry = h * 0.052, ccy = floor_y - ry, pole_y = ccy - hub_tall * 0.5;
-    double ang = wind ? -anim_t * 0.75 : M_PI / 4, tall = hub_tall * 0.5 / 0.6;
+    double turn = wind ? anim_t * 0.6 : M_PI / 4;
     double hub_w = hub_tall * sprite[SP_HUB].w / sprite[SP_HUB].h * 0.8;
     for (int pass = 0; pass < 2; pass++) {
         if (pass) {
             disc(cx, ccy, hub_tall * 0.62, col(INK, 0.3), col(INK, 0));
             pic_part(SP_HUB, cx - hub_w / 2, ccy + hub_tall * 0.06 - hub_tall, hub_w, hub_tall, 0, 1, 0, 0);
         }
-        for (int i = 0; i < 4; i++) {
-            double a = ang + i * M_PI / 2 + (pass ? 1e-6 : -1e-6);
-            if (wind && !pass) draw_pusher(cx, ccy, pole_y, rx, ry, a, tall, 0);
-            draw_pole(cx, pole_y, rx, ry, a, hub_w / 2, pass);
-            if (wind && pass) draw_pusher(cx, ccy, pole_y, rx, ry, a, tall, 1);
+        for (int i = 0; i < 4; i++) draw_pole(cx, pole_y, rx, ry, -turn + i * M_PI / 2 + (pass ? 1e-6 : -1e-6), hub_w / 2, pass);
+    }
+    /* and the fraas who turn it, seen from above in a round window under the dial */
+    double grow = wind ? fmin(now_.noon / 25.0, 1) * fmin((WIND_SECS - now_.noon) / 25.0, 1) : 0;
+    if (grow > 0) {
+        double ix = dx, iy = h * 0.735, iR = h * 0.175;
+        for (double q = 0.08; q < 0.92; q += 0.07) { /* a dotted line from the hub to the window */
+            double ax = ix + iR * 0.9 + (cx - hub_w * 0.6 - ix - iR * 0.9) * q, ay = iy + (pole_y - iy) * q;
+            disc(ax, ay, unit * 0.28, col(INK, 0.8 * grow), col(INK, 0.8 * grow));
         }
+        draw_from_above(ix, iy, iR, turn, grow < 1 ? grow : 1);
     }
     flush(r);
 

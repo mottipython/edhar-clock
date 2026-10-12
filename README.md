@@ -23,7 +23,9 @@ clock.
 - **The dial** and the scroll give the time and date outright.
 
 At noon four fraas put their shoulders to the poles and wind the clock for twenty
-minutes. That is the aut of Provener. Through the night the chancel goes dark.
+minutes. That is the aut of Provener. A capstan only makes sense from above, so
+while it lasts a round window opens under the dial and shows them walking it round.
+Through the night the chancel goes dark.
 
 Since nobody leaves a screensaver on at noon, every minute or so a whole day is run
 through in half a minute, slowing down for sunset, sunrise and Provener, and then
@@ -51,7 +53,7 @@ Packages are on the [releases page](../../releases).
 
 ### Windows
 
-Run `EdharClock-Setup-1.0.1.exe`. It asks for administrator rights, because Windows
+Run `EdharClock-Setup-1.0.2.exe`. It asks for administrator rights, because Windows
 only lists screensavers that are in its own system folder. After that "The Clock of
 Saunt Edhar" is in Screen Saver Settings with the others, already selected.
 Uninstall from Apps.
@@ -60,11 +62,11 @@ Uninstall from Apps.
 
 **Fedora, Nobara** (built on Fedora 44):
 
-    sudo dnf install ./edhar-clock-1.0.1-1.fc44.x86_64.rpm
+    sudo dnf install ./edhar-clock-1.0.2-1.fc44.x86_64.rpm
 
 **Debian, Ubuntu, Mint** (Ubuntu 24.04 / Debian 13 or later):
 
-    sudo apt install ./edhar-clock_1.0.1_amd64.deb
+    sudo apt install ./edhar-clock_1.0.2_amd64.deb
 
 From your next login it starts by itself after five minutes idle, and any key or
 mouse movement ends it. To start the watcher without logging out, or to change the
@@ -115,6 +117,6 @@ MIT. *Anathem* and the clock are Neal Stephenson's; this is an unofficial fan
 project.
 
 The pictures (the chancel, the meteorite, the stone weights, the sphere, the dial,
-the hub, the fraas, the chain and the scroll) were drawn with Google Gemini and
+the hub, the fraas, the floor, the chain and the scroll) were drawn with Google Gemini and
 prepared by `tools/make_sprites.py`. Images are decoded with
 [stb_image](https://github.com/nothings/stb) (public domain).
