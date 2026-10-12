@@ -441,7 +441,7 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
     pic(SP_SPHERE, sx, sy, s_tall, 0.5, 0.56);
 
     /* the meteorite on the main chain, down the middle */
-    double cx = w * 0.5, floor_y = h * 0.93, hub_tall = h * 0.235;
+    double cx = w * 0.5, floor_y = h * 0.93, hub_tall = h * 0.215;
     double m_top = h * 0.13, m_bot = floor_y - hub_tall - h * 0.15, mt = h * 0.15;
     double my = m_top + meteorite_drop() * (m_bot - m_top);
     draw_chain(cx, 0, my - mt * 0.4, unit * 2.0);
@@ -449,9 +449,9 @@ static void draw_scene(SDL_Renderer *r, int w, int h)
 
     /* the hub, and at Provener the four who wind it */
     int wind = winding();
-    double rx = w * 0.13, ry = h * 0.05, ccy = floor_y - ry, pole_y = ccy - hub_tall * 0.5;
-    double ang = wind ? -anim_t * 0.75 : M_PI / 4, tall = hub_tall * 0.5 / 0.64;
-    double hub_w = hub_tall * sprite[SP_HUB].w / sprite[SP_HUB].h;
+    double rx = w * 0.158, ry = h * 0.052, ccy = floor_y - ry, pole_y = ccy - hub_tall * 0.5;
+    double ang = wind ? -anim_t * 0.75 : M_PI / 4, tall = hub_tall * 0.5 / 0.6;
+    double hub_w = hub_tall * sprite[SP_HUB].w / sprite[SP_HUB].h * 0.8;
     for (int pass = 0; pass < 2; pass++) {
         if (pass) {
             disc(cx, ccy, hub_tall * 0.62, col(INK, 0.3), col(INK, 0));
