@@ -1,0 +1,25 @@
+name: macOS build
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the app
+        run: packaging/macos/build.sh edhar-clock "The Clock of Saunt Edhar" src/clock.c
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: |
+            dist/*-mac.zip
+            build/mac/test.png
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*-mac.zip --clobber
