@@ -1,7 +1,7 @@
 # The Clock of Saunt Edhar
 
 A screensaver of the great clock in the Mynster of the Concent of Saunt Edhar, from
-Neal Stephenson's novel *Anathem*. It shows the real time and date. Linux and Windows.
+Neal Stephenson's novel *Anathem*. It shows the real time and date. Linux, Windows and macOS. One of the [Anathem screensavers](https://github.com/mottipython/anathem-screensavers).
 
 ![The chancel in the afternoon](docs/screenshots/1-afternoon.png)
 
