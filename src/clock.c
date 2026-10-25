@@ -337,7 +337,9 @@ static void draw_chain(double x, double y0, double y1, double wide)
 {
     flush(ren);
     if (!cur_tex || !cur_tex[SP_CHAIN]) return;
+    if (wide <= 0 || !sprite[SP_CHAIN].w) return;
     double th = wide * sprite[SP_CHAIN].h / sprite[SP_CHAIN].w;
+    if (th < 1e-4) return;
     /* hang the pattern from the bottom so the links move with the weight */
     for (double y = y1 - th; y > y0 - th; y -= th) {
         double top = y < y0 ? y0 : y, cut = (top - y) / th;
@@ -613,7 +615,7 @@ static int snapshot(void)
 
 static void usage(void)
 {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "The Clock of Saunt Edhar",
+    static const char text[] =
         "The Clock of Saunt Edhar screensaver\n\n"
         "  --window        run in a window (Esc or Q quits)\n"
         "  --speed X       animation speed, 1 = normal\n"
@@ -621,7 +623,12 @@ static void usage(void)
         "  --at HH:MM      show the clock as it would be at this time of day\n"
         "  --seed N        repeatable sequence\n"
         "  --snapshot FILE.bmp [--time SECONDS] [--size WxH]\n"
-        "                  write a picture of the screensaver after SECONDS and exit\n", NULL);
+        "                  write a picture of the screensaver after SECONDS and exit\n";
+    if (getenv("SDL_VIDEODRIVER") && !strcmp(getenv("SDL_VIDEODRIVER"), "dummy")) {
+        fputs(text, stderr);
+        return;
+    }
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "The Clock of Saunt Edhar", text, NULL);
 }
 
 int main(int argc, char **argv)
@@ -639,18 +646,26 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--at") && i + 1 < argc) {
             /* pretend it is this time of day (HH:MM) */
             const char *c = SDL_strchr(argv[++i], ':');
+            if (!c) { usage(); return 1; }
+            int hh = SDL_atoi(argv[i]);
+            int mm = SDL_atoi(c + 1);
+            if (hh < 0 || hh > 23 || mm < 0 || mm > 59) { usage(); return 1; }
             time_t tt = time(NULL);
             struct tm *tm = localtime(&tt);
-            if (tm) opt_shift = SDL_atoi(argv[i]) * 3600.0 + (c ? SDL_atoi(c + 1) : 0) * 60.0 - (tm->tm_hour * 3600.0 + tm->tm_min * 60.0 + tm->tm_sec);
+            if (tm) opt_shift = hh * 3600.0 + mm * 60.0 - (tm->tm_hour * 3600.0 + tm->tm_min * 60.0 + tm->tm_sec);
         }
         else if (!strcmp(a, "--speed") && i + 1 < argc) opt_speed = SDL_atof(argv[++i]);
         else if (!strcmp(a, "--seed") && i + 1 < argc) opt_seed = SDL_strtoull(argv[++i], NULL, 10);
         else if (!strcmp(a, "--snapshot") && i + 1 < argc) opt_snapshot = argv[++i];
-        else if (!strcmp(a, "--time") && i + 1 < argc) opt_time = SDL_atof(argv[++i]);
+        else if (!strcmp(a, "--time") && i + 1 < argc) {
+            opt_time = SDL_atof(argv[++i]);
+            if (opt_time < 0.0) opt_time = 0.0;
+            if (opt_time > 86400.0) opt_time = 86400.0;
+        }
         else if (!strcmp(a, "--size") && i + 1 < argc) {
             const char *x = SDL_strchr(argv[++i], 'x');
             opt_w = SDL_atoi(argv[i]); opt_h = x ? SDL_atoi(x + 1) : 0;
-            if (opt_w < 64 || opt_h < 64) { usage(); return 1; }
+            if (opt_w < 64 || opt_h < 64 || opt_w > 8192 || opt_h > 8192) { usage(); return 1; }
         }
         else { usage(); return 1; }
     }
